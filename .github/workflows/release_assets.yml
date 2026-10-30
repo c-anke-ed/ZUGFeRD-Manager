@@ -67,9 +67,11 @@ jobs:
 
       - name: Build with Gradle
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           source env.sh
-          ./gradlew clean bundle
+          ./gradlew clean bundle -PreleaseVersion="${TAG}"
 
       - name: Upload bundle to release
         shell: bash

@@ -15,6 +15,20 @@ project.version = libs.versions.application.version.get()
 
 val applicationPackageName = "ZUGFeRD-Manager"
 
+// Version used in the file names of the application bundles.
+// Release builds provide the Git tag (e.g. "v1.3.2-1") via "-PreleaseVersion",
+// so that the bundles always match the released version.
+val applicationPackageVersion: String = findProperty("releaseVersion")
+    ?.toString()?.trim()?.removePrefix("v")?.takeIf { it.isNotEmpty() }
+    ?.also {
+        if (it != project.version.toString() && !it.startsWith("${project.version}-")) {
+            throw GradleException(
+                "Release version \"$it\" does not match application version \"${project.version}\"!"
+            )
+        }
+    }
+    ?: libs.versions.application.pkg.get()
+
 val isLinux = SystemUtils.IS_OS_LINUX
 val isMac = SystemUtils.IS_OS_MAC
 val isWindows = SystemUtils.IS_OS_WINDOWS
@@ -425,7 +439,7 @@ tasks {
             dependsOn("createReleaseDistributable")
 
             archiveExtension = "tar.gz"
-            archiveVersion = libs.versions.application.pkg.get()
+            archiveVersion = applicationPackageVersion
             archiveClassifier = if (isArm64) "linux-arm64" else "linux-x64"
             compression = Compression.GZIP
             destinationDirectory = rootProject.layout.buildDirectory
@@ -448,7 +462,7 @@ tasks {
                 }
 
                 val arch = if (isArm64) "arm64" else "x64"
-                "${project.name}-${libs.versions.application.pkg.get()}-linux-${arch}.deb"
+                "${project.name}-${applicationPackageVersion}-linux-${arch}.deb"
             }
         }
 
@@ -465,7 +479,7 @@ tasks {
                 }
 
                 val arch = if (isArm64) "arm64" else "x64"
-                "${project.name}-${libs.versions.application.pkg.get()}-linux-${arch}.rpm"
+                "${project.name}-${applicationPackageVersion}-linux-${arch}.rpm"
             }
         }
 
@@ -480,7 +494,7 @@ tasks {
             val flatpakDir = project.layout.buildDirectory.dir("flatpak").get().asFile
             val sourceDir = flatpakDir.resolve("source")
             val bundleFile = rootProject.layout.buildDirectory
-                .file("${project.name}-${libs.versions.application.pkg.get()}-linux-${arch}.flatpak")
+                .file("${project.name}-${applicationPackageVersion}-linux-${arch}.flatpak")
                 .get().asFile
 
             doLast {
@@ -491,7 +505,7 @@ tasks {
                     into(sourceDir)
                     filesMatching("*.metainfo.xml") {
                         filter {
-                            it.replace("@VERSION@", libs.versions.application.pkg.get())
+                            it.replace("@VERSION@", applicationPackageVersion)
                                 .replace("@DATE@", LocalDate.now().toString())
                         }
                     }
@@ -702,7 +716,7 @@ tasks {
             dependsOn("packageReleaseDistributionForCurrentOS")
 
             val arch = if (isArm64) "arm64" else "x64"
-            val dmgTargetFileName = "${project.name}-${libs.versions.application.pkg.get()}-macos-${arch}.dmg"
+            val dmgTargetFileName = "${project.name}-${applicationPackageVersion}-macos-${arch}.dmg"
 
             into(rootProject.layout.buildDirectory)
             from(project.layout.buildDirectory.dir("compose/binaries/main-release/dmg"))
@@ -850,7 +864,7 @@ tasks {
             dependsOn("createReleaseDistributable")
 
             archiveExtension = "zip"
-            archiveVersion = libs.versions.application.pkg.get()
+            archiveVersion = applicationPackageVersion
             archiveClassifier = if (isArm64) "windows-arm64" else "windows-x64"
             destinationDirectory = rootProject.layout.buildDirectory
             from(project.layout.buildDirectory.dir("compose/binaries/main-release/app"))
@@ -874,7 +888,7 @@ tasks {
                         }
 
                         val arch = if (isArm64) "arm64" else "x64"
-                        "${project.name}-${libs.versions.application.pkg.get()}-windows-${arch}.exe"
+                        "${project.name}-${applicationPackageVersion}-windows-${arch}.exe"
                     }
                 }
             }
